@@ -1,0 +1,22 @@
+
+<div id="wallet_container">
+</div>
+
+
+
+
+<script src="https://sdk.mercadopago.com/js/v2"></script>
+<script>
+    const preferenceId =  '{{ preference }}' ;
+
+    const mp = new MercadoPago('APP_USR-f08ca209-c6f7-48ce-9eea-74381246b1f7');
+    const bricksBuilder = mp.bricks();
+    mp.bricks().create("wallet", "wallet_container", {
+        initialization: {
+            preferenceId: preferenceId,
+        },
+    });
+    console.log(preferenceId);
+
+</script>
+
