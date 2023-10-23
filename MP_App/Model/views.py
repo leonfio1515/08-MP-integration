@@ -48,17 +48,17 @@ class Compra(TemplateView):
                     compra.quantity = quantity
                     compra.tot_amount = price
                     compra.save()
+                    request.session['compra_id'] = compra.id
 
                     print(art_name.name_art, quantity, price)
                     
-                    procesar_pago(art_name.name_art, quantity, price)
-
                     return redirect('pagar')
                 else:
                     print('No se selecciono articulo')
                     return redirect('compras')
             except:
                 print('No se selecciono articulo')
+                return redirect('compras')
 
         return redirect('compras')
 
@@ -73,11 +73,43 @@ class Pay(TemplateView):
     template_name = 'pay.html'
 
     def get(self, request, *args, **kwargs):
-        preference = request.session.get('preference')
-        self.preference = preference
+        compra_id = request.session.get('compra_id', None)
+
+        if compra_id:
+            compra = Compras.objects.get(id=compra_id)
+
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        compra_id = request.session.get('compra_id', None)
+
+        if compra_id:
+            self.compra = Compras.objects.get(id = compra_id)
+            self.prefecence = procesar_pago(self.compra.name_art, self.compra.quantity, self.compra.price)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['preference'] = self.preference['id'] if self.preference else None
+        if hasattr(self, 'preference'):
+            context['preference'] = self.preference['id']
+            print(context['preference'])
+        print(context['preference'])
 
         return context
+
+
+class Test(TemplateView):
+    sdk = mercadopago.SDK(settings.PROD_ACCESS_TOKEN)
+
+    preference_data = {
+        "items": [
+            {
+                "title":'Articulo',
+                "quantity":1,
+                "currency_id":"UYU",
+                "unit_price": 150
+            }
+        ]
+    }
+
+    preference_response = sdk.preference().create(preference_data)
+    preference = preference_response['response']
