@@ -1,0 +1,23 @@
+
+<form class="needs-validation" novalidate method="POST">
+    {% csrf_token %}
+
+    {{ user }}
+
+
+    {% for i in list %}
+ 
+       <p>
+        <input name="article_dis" value="{{ i.name_art }}" type="text" disabled> 
+        <input name="price_dis" value="{{ i.price_art }}" type="text" disabled>  
+        <input name="article" value="{{ i.id }}" type="hidden">
+        <input name="price" value="{{ i.price_art }}" type="hidden"> -
+        <input name="quantity" type="number">
+        </p>
+
+    {% endfor %}
+    
+    <button type="submit">Comprar</button>
+
+</form>
+
