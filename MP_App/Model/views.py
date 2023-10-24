@@ -6,10 +6,21 @@ from .models import Articulo, Compras, Cliente
 from django.http import HttpResponse
 #-----------------------------------------------------#
 
+
+# Success - Se genera cuando el pago se aprueba inmediatamente
+# Failure - Cuando el cliente no puede pagar - No le alcanza el disponible y decide "Volve al sitio"
+# Pending - Cuando se espera respuesta del pago - Abitab / Redpagos
+
 def procesar_pago(art, quantity, price):
     sdk = mercadopago.SDK(settings.PROD_ACCESS_TOKEN)
 
     preference_data = {
+        "back_urls": {
+            "success": "https://www.youtube.com/",
+            "failure": "https://chat.openai.com/",
+            "pending": "https://www.stadium.com.uy/admin.php/ingresar"
+        },
+        "auto_return": "approved",
         "items": [
             {
                 "title":art,
@@ -22,6 +33,7 @@ def procesar_pago(art, quantity, price):
 
     preference_response = sdk.preference().create(preference_data)
     preference = preference_response['response']
+    print(preference)
     return preference
 
 
@@ -47,6 +59,7 @@ class Compra(TemplateView):
                     compra.client = client
                     compra.quantity = quantity
                     compra.tot_amount = price
+                    compra.unit_amount = float(form['price'])
                     compra.save()
                     request.session['compra_id'] = compra.id
 
@@ -72,44 +85,28 @@ class Compra(TemplateView):
 class Pay(TemplateView):
     template_name = 'pay.html'
 
-    def get(self, request, *args, **kwargs):
-        compra_id = request.session.get('compra_id', None)
-
-        if compra_id:
-            compra = Compras.objects.get(id=compra_id)
-
-        return super().get(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        compra_id = request.session.get('compra_id', None)
-
-        if compra_id:
-            self.compra = Compras.objects.get(id = compra_id)
-            self.prefecence = procesar_pago(self.compra.name_art, self.compra.quantity, self.compra.price)
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        if hasattr(self, 'preference'):
-            context['preference'] = self.preference['id']
-            print(context['preference'])
-        print(context['preference'])
+        compra_id = self.request.session.get('compra_id', None)
+        compra = Compras.objects.get(id = compra_id)
+        preference = procesar_pago(compra.art.name_art, compra.quantity, compra.unit_amount)
+
+        context['preference'] = preference['id']       
+        print(preference)
 
         return context
 
 
 class Test(TemplateView):
-    sdk = mercadopago.SDK(settings.PROD_ACCESS_TOKEN)
+    template_name = 'pay.html'
 
-    preference_data = {
-        "items": [
-            {
-                "title":'Articulo',
-                "quantity":1,
-                "currency_id":"UYU",
-                "unit_price": 150
-            }
-        ]
-    }
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        compra_id = self.request.session.get('compra_id', None)
+        compra = Compras.objects.get(id = compra_id)
+        preference = procesar_pago(compra.art.name_art, compra.quantity, compra.tot_amount)
 
-    preference_response = sdk.preference().create(preference_data)
-    preference = preference_response['response']
+        context['preference'] = preference['id']
+
+        print(preference)
+        return context

@@ -18,4 +18,5 @@ class Compras(models.Model):
     art = models.ForeignKey(Articulo, on_delete=models.CASCADE)
     client = models.ForeignKey(Cliente, on_delete=models.CASCADE)
     quantity = models.SmallIntegerField(default=1)
+    unit_amount = models.PositiveIntegerField(default=0)
     tot_amount = models.PositiveIntegerField(default=0)
